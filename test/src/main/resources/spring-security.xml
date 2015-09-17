@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"  
+  xmlns:beans="http://www.springframework.org/schema/beans"  
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xsi:schemaLocation="http://www.springframework.org/schema/beans  
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd  
+           http://www.springframework.org/schema/security  
+           http://www.springframework.org/schema/security/spring-security-3.1.xsd">  
+  <!-- 配置无需认证的页面 -->
+  <http pattern="/resources/**" security="none"/>
+  <http pattern="/app/alarmFault/**" security="none"/>
+  <http pattern="/app/businessSystem/**" security="none"/>
+  <http pattern="/app/common/**" security="none"/>
+  <http pattern="/app/detectDevice/**" security="none"/>
+  <http pattern="/app/deviceStateMonitor/**" security="none"/>
+  <http pattern="/app/informationSystem/**" security="none"/>
+  <http pattern="/app/plateformService/**" security="none"/>
+  <http pattern="/app/transMointor/**" security="none"/>
+  <http pattern="/app/troomEnvironment/**" security="none"/>
+  <http pattern="/login.*" security="none"/>
+  
+  <!-- auto-config = true 则使用from-login. 如果不使用该属性 则默认为http-basic(没有session).    
+        access-denied-page:出错后跳转到的错误页面;   
+  -->   
+  <http auto-config="true" access-denied-page="/login.jsp?error=1" entry-point-ref="authenticationProcessingFilterEntryPoint">
+    <!-- 配置登录页面 :
+    			   表示通过 /login.jsp这个映射进行登录.
+			            如果验证失败则返回一个URL:/login.jsp
+			            如果登录成功则默认指向:/index.jsp 
+    -->
+    <form-login login-page="/login.do" authentication-failure-url="/login.jsp?error=2" 
+                default-target-url="/index.do"
+                login-processing-url="/j_spring_security_check"
+                always-use-default-target="true"
+                authentication-success-handler-ref="loginLogAuthenticationSuccessHandler"/>
+    <!-- logout-success-url:成功注销后跳转到的页面; -->  
+    <logout logout-success-url="/login.do"/> 
+    <!-- 配置保护资源：
+          intercept-url:拦截器,可以设定哪些路径需要哪些权限来访问. filters=none 不使用过滤,也可以理解为忽略 
+                      例如：<intercept-url pattern="/script/**" filters="none" /> 
+     -->
+    <intercept-url pattern="/dataDictionaryType.*" access="ROLE_ADMIN"/>    
+    <intercept-url pattern="/countyMointorPage.*" access="ROLE_ADMIN,ROLE_COUNTY"/>
+    <intercept-url pattern="/municipalMointorPage.*" access="ROLE_ADMIN,ROLE_MUNICIPAL"/>    
+    <!-- session-management是针对session的管理. 这里可以不配置. 如有需求可以配置. -->  
+	<!-- id登陆唯一. 后登陆的账号会挤掉第一次登陆的账号  error-if-maximum-exceeded="true" 禁止2次登陆;   
+	       session-fixation-protection="none" 防止伪造sessionid攻击. 用户登录成功后会销毁用户当前的session.   
+	                 创建新的session,并把用户信息复制到新session中.   
+	--> 
+    <session-management session-fixation-protection="none">  
+       <concurrency-control max-sessions="1" error-if-maximum-exceeded="false" expired-url="/login.do"/>  
+	</session-management> 
+<!--     	<custom-filter ref="loginFilter" position="FORM_LOGIN_FILTER" />
+ -->        <custom-filter ref="securityFilter" before="FILTER_SECURITY_INTERCEPTOR"/>  
+  </http>
+   
+    <!-- 登录验证器 -->
+<!--     <beans:bean id="loginFilter"
+		class="cqjk.filter.MyUsernamePasswordAuthenticationFilter">
+		处理登录
+		<beans:property name="filterProcessesUrl" value="/j_spring_security_check"></beans:property>
+		<beans:property name="authenticationSuccessHandler" ref="loginLogAuthenticationSuccessHandler"></beans:property>
+		<beans:property name="authenticationFailureHandler" ref="simpleUrlAuthenticationFailureHandler"></beans:property>
+		<beans:property name="authenticationManager" ref="authenticationManager"></beans:property>		
+	</beans:bean>-->
+    <beans:bean id="loginLogAuthenticationSuccessHandler"
+                class="cqjk.security.WebAuthenticationSuccessLoggerHandler">
+    </beans:bean>
+ 	<beans:bean id="simpleUrlAuthenticationFailureHandler"
+		class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<beans:property name="defaultFailureUrl" value="/login.do"></beans:property>
+	</beans:bean>    
+    
+    <beans:bean id="authenticationProvider" class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">  
+	    <beans:property name="hideUserNotFoundExceptions" value="false" />  
+ 	    <beans:property name="userDetailsService" ref="UserManagerImpl" />  
+<!-- 	    <beans:property name="userCache" ref="userCache" />  
+ -->	    <beans:property name="messageSource" ref="messageSource" />  
+	    <beans:property name="passwordEncoder" ref="passwordEncode" /> 
+        <beans:property name="saltSource" ref="saltSource" />  
+    </beans:bean> 
+   <!-- 认证过滤器 -->
+   <beans:bean id="securityFilter" class="cqjk.security.SecurityFilter">
+        <!-- 用户拥有的权限 -->
+        <beans:property name="authenticationManager" ref="AuthenticationManager" />
+        <!-- 用户是否拥有所请求资源的权限 -->
+        <beans:property name="accessDecisionManager" ref="AccessDecisionManager" />
+        <!-- 资源与权限对应关系 -->
+        <beans:property name="securityMetadataSource" ref="SecurityMetadataSource" />   
+   </beans:bean>
+   <beans:bean id="AccessDecisionManager" class="cqjk.security.UserAccessDecisionManager"></beans:bean>
+   <beans:bean id="SecurityMetadataSource" class="cqjk.security.SecurityMetadataSource">
+           <beans:constructor-arg name="resourceMapper" ref="resourceMapper"></beans:constructor-arg>
+   </beans:bean>
+   <beans:bean id="UserManagerImpl" class="cqjk.security.UserDetailServiceImpl"></beans:bean> 
+   <!-- 实现了UserDetailsService的Bean -->
+   <authentication-manager alias="AuthenticationManager">
+        <authentication-provider user-service-ref="UserManagerImpl"></authentication-provider>
+        <authentication-provider ref="authenticationProvider"></authentication-provider>
+   </authentication-manager>
+   <!-- 未登录的切入点 -->
+   <beans:bean id="authenticationProcessingFilterEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <beans:property name="loginFormUrl" value="/login.do"></beans:property>
+   </beans:bean>
+   <!-- 配置密码加密类 -->  
+  <beans:bean id="passwordEncode" class="org.springframework.security.authentication.encoding.Md5PasswordEncoder" />  
+  <beans:bean id="saltSource" class="org.springframework.security.authentication.dao.ReflectionSaltSource">  
+    <beans:property name="userPropertyToUse" value="username"/>  
+  </beans:bean>  
+
+  <!-- 定义上下文返回的消息的国际化 -->  
+  <beans:bean id="messageSource"  
+      class="org.springframework.context.support.ReloadableResourceBundleMessageSource">  
+      <beans:property name="basename"  
+          value="classpath:config/messages_zh_CN"/>  
+  </beans:bean>  
+</beans:beans>  

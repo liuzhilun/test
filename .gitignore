@@ -1,0 +1,8 @@
+.project
+.prefs
+.classpath
+target/
+.metadata/
+.settings/
+
+

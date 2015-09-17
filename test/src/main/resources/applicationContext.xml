@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:spring.xml"/>
+   <!--  <import resource="classpath:spring-mybatis.xml"/>--> 
+   <!--  <import resource="classpath:spring-security.xml"/>--> 
+    <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+        <property name="basenames">
+            <list>
+                <value>ApplicationResources</value>
+            </list>
+        </property>
+        <property name="cacheSeconds" value="3600"/>
+        <property name="useCodeAsDefaultMessage" value="true" />
+    </bean>
+
+    <bean id="localeChangeInterceptor" class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor"/>
+
+<!--   <bean id="defaultUrlMapping" class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping">
+        <property name="interceptors" ref="localeChangeInterceptor"/>
+        <property name="order">
+            <value>1</value>
+        </property>
+    </bean>
+
+    <bean id="localeResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver"/>
+
+  <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+    <property name="maxUploadSize" value="5242880"/>
+  </bean>  
+ -->
+</beans>
